@@ -94,13 +94,14 @@
         maxZoom: 19
       }).addTo(map);
 
-      // AJAX call to load county-level data
+      // AJAX call to load lease polygons
       $.getJSON("data/BOEM_Lease_Areas.geojson", function(data) {
         // draw the map using GeoJSON data
         drawMap(data);
         console.log(data);
       });
 
+      // AJAX call to load planning area polygons
       $.getJSON("data/BOEM_Wind_Planning_Areas.geojson", function(data) {
         // draw the map using GeoJSON data
         drawMap(data);
@@ -123,6 +124,13 @@
 
         //statement to draw info panel
         drawInfo();
+
+        //get info panel data from updateInfo function
+  			dataLayer.eachLayer(function(layer) {
+  				layer.on('mouseover', function() {
+  					updateInfo(this);
+  				});
+  			});
 
         //highlight feature on mouseover
         dataLayer.eachLayer(function(layer) {
@@ -153,48 +161,48 @@
   			});
 
         dataLayer.eachLayer(function(layer) {
-        				// shortcut reference for layer properties
-        				var props = layer.feature.properties;
+    			// shortcut reference for layer properties
+    			var props = layer.feature.properties;
 
-        				// assemble string sequence of info for tooltip
-        				var tooltipInfo = "<b>" + "OCS Block #: " + props["BLOCK_NUMB"]
-        				// bind a tooltip to layer with county-specific information
-        				layer.bindTooltip(tooltipInfo, {
-        					sticky: true
-        				});
-        			});
+    			// assemble string sequence of info for tooltip
+    			var tooltipInfo = "<b>" + "Block #: " + props["BLOCK_NUMB"]
+    			// bind a tooltip to layer with county-specific information
+    			layer.bindTooltip(tooltipInfo, {
+    				sticky: true
+    			});
+    		});
 
       }
 
-
       //begin function to draw info panel
-      		function drawInfo() {
-      			//variable to indicate position of panel
-      			var info = L.control({
-      				position: 'topright'
-      			});
-      			info.onAdd = function(map) {
-      				var div = L.DomUtil.create('div', 'info');
-      				return div;
-      			}
-      			//add info to map
-      			info.addTo(map);
-      			//hide when no mouseover
-      			$(".info").hide();
-      		}
+  		function drawInfo() {
+  			//variable to indicate position of panel
+  			var info = L.control({
+  				position: 'topright'
+  			});
+  			info.onAdd = function(map) {
+  				var div = L.DomUtil.create('div', 'info');
+  				return div;
+  			}
+  			//add info to map
+  			info.addTo(map);
+  			//hide when no mouseover
+  			$(".info").hide();
+  		}
 
 
-          //begin function to define info layer panel attributes and values
-          		function updateInfo(layer) {
-          			//variable to get feature values
-          			var props = layer.feature.properties;
+      //begin function to define info layer panel attributes and values
+  		function updateInfo(layer) {
+  			//variable to get feature values
+  			var props = layer.feature.properties;
 
-          			//descriptions of values to be displayed in panel on map
-          			var html = "<h3>Lease Number " + props['Lease_Numb'] + "</h3>"
-          			//add values to map
-          			$(".info").html(html);
+  			//descriptions of values to be displayed in panel on map
+  			var html = "<h3>Lease #: " + props['Lease_Numb'] + "</h3>" +
+                   "Lessee: <b>" + props["Company"] + "</b><br>"
+  			//add values to map
+  			$(".info").html(html);
 
-          		}
+  		}
 
 
       // // mapbox access token for jomalique account
