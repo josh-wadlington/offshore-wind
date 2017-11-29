@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+
+  <title>Atlantic Offshore Wind</title>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" />
+	<link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Lora" rel="stylesheet">
+
+  <!-- reference to mapbox assembly library -->
+  <link href="https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.min.css" rel="stylesheet">
+  <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+
+  <!-- <link href='css/styles.css' rel='stylesheet' /> -->
+  <style>
+
+    /*rules for info panel*/
+		.info {
+			padding: 6px 8px;
+			font-size: 1em;
+			background: rgba(255, 255, 255, 0.8);
+			box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+			border-radius: 5px;
+			text-align: right;
+		}
+		.info h3 {
+			margin: 0;
+		}
+
+  </style>
+
+</head>
+
+<body>
+
+  <!-- info grid display on left of screen -->
+  <div class='grid'>
+    <div class='col col--12 col--3-ml p12 pb6 viewport-third viewport-full-ml'>
+      <div class='h-full scroll-auto'>
+        <h1 class='txt-h1 mb6'>Title here</h1>
+        <p>Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Sed posuere consectetur est at lobortis. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Aenean lacinia bibendum nulla sed consectetur.
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p>
+        <h2 class='txt-xl mt18 mb12'>subheading</h2>
+        <p>Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Sed posuere consectetur est at lobortis. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Aenean lacinia bibendum nulla sed consectetur.
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p>
+        <footer class='mt12 bg-gray-faint txt-s'>
+          <ul>
+            <li>Explore the raw <a class='link' href='#'>data</a></li>
+            <li>Map authored by <a class='link' href='#'>Ptolemy</a></li>
+            </p>
+        </footer>
+      </div>
+    </div>
+
+    <!-- map display -->
+    <div class='col col--12 col--9-ml h180 h-full-ml'>
+      <div id="map" class='viewport-twothirds viewport-full-ml'></div>
+
+      <!-- ui slider -->
+      <div id='slider' class='range w240 bg-white round-ml p12'>
+        <input type='range' />
+      </div>
+
+      <!-- legend -->
+      <div id='legend' class='bg-white round-ml px18 py18'>
+        <h3 class='txt-bold mb12 w-full mx-auto'>Legend</h3>
+        <div class='bg-blue h180 w240 mx-auto'></div>
+      </div>
+    </div>
+
+    <!-- load jquery and leaflet libraries -->
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"></script>
+
+    <!-- load assembly, mapbox and omnivore libraries -->
+    <script async defer src="https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.js"></script>
+    <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+    <script src='https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
+
+    <!-- reference to js as relative path -->
+    <!-- <script src='js/app.js'></script> -->
+
+    <script>
+      var map = L.map('map')
+        .setView([37.1, -72.1], 6.2);
+      var basemap = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+
+      // AJAX call to load county-level data
+      $.getJSON("data/BOEM_Lease_Areas.geojson", function(data) {
+        // draw the map using GeoJSON data
+        drawMap(data);
+        console.log(data);
+      });
+
+      $.getJSON("data/BOEM_Wind_Planning_Areas.geojson", function(data) {
+        // draw the map using GeoJSON data
+        drawMap(data);
+        // console.log(data);
+      });
+
+      //begin function to define map drawing paramaters
+      function drawMap(data) {
+        // create Leaflet data layer and add to map
+        var dataLayer = L.geoJson(data, {
+          style: function(feature) {
+            // style counties with initial default path options
+            return {
+              color: 'black',
+              weight: .5,
+              fillOpacity: .5
+            };
+          }
+        }).addTo(map);
+
+        //statement to draw info panel
+        drawInfo();
+
+        //highlight feature on mouseover
+        dataLayer.eachLayer(function(layer) {
+          layer.on('mouseover', function() {
+            layer.setStyle({
+              color: 'yellow',
+              opacity: 1,
+              weight: 2
+            }).bringToFront();
+          });
+        });
+        //return feature to default style after mouseout
+        dataLayer.eachLayer(function(layer) {
+          layer.on('mouseout', function() {
+            layer.setStyle({
+              color: 'black',
+              weight: .5,
+            });
+          });
+        });
+
+        //draw info panel only when user hovers over county
+  			dataLayer.on('mouseover', function() {
+  				$(".info").show();
+  			});
+  			dataLayer.on('mouseout', function() {
+  				$(".info").hide();
+  			});
+
+        dataLayer.eachLayer(function(layer) {
+        				// shortcut reference for layer properties
+        				var props = layer.feature.properties;
+
+        				// assemble string sequence of info for tooltip
+        				var tooltipInfo = "<b>" + "OCS Block #: " + props["BLOCK_NUMB"]
+        				// bind a tooltip to layer with county-specific information
+        				layer.bindTooltip(tooltipInfo, {
+        					sticky: true
+        				});
+        			});
+
+      }
+
+
+      //begin function to draw info panel
+      		function drawInfo() {
+      			//variable to indicate position of panel
+      			var info = L.control({
+      				position: 'topright'
+      			});
+      			info.onAdd = function(map) {
+      				var div = L.DomUtil.create('div', 'info');
+      				return div;
+      			}
+      			//add info to map
+      			info.addTo(map);
+      			//hide when no mouseover
+      			$(".info").hide();
+      		}
+
+
+          //begin function to define info layer panel attributes and values
+          		function updateInfo(layer) {
+          			//variable to get feature values
+          			var props = layer.feature.properties;
+
+          			//descriptions of values to be displayed in panel on map
+          			var html = "<h3>Lease Number " + props['Lease_Numb'] + "</h3>"
+          			//add values to map
+          			$(".info").html(html);
+
+          		}
+
+
+      // // mapbox access token for jomalique account
+      //   L.mapbox.accessToken = 'pk.eyJ1Ijoiam9tYWxpcXVlIiwiYSI6ImNqOWZtYWl6dDJvc2EzM25yNXg0OHNkczEifQ.g9EERDYT3JO4Xt3RQUr91g';
+      //
+      //   // create the Leaflet map using mapbox.light tiles
+      //   var map = L.mapbox.map('map', 'mapbox.light', {
+      //     zoomSnap: .1,
+      //     center: [37.1, -72.1],
+      //     zoom: 6.2
+      //   });
+
+    </script>
+
+</body>
+
+</html>
