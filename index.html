@@ -32,6 +32,10 @@
 			margin: 0;
 		}
 
+    .legend-large, .legend-small {
+        border-radius: 50%;
+    }
+
   </style>
 
 </head>
@@ -42,16 +46,14 @@
   <div class='grid'>
     <div class='col col--12 col--3-ml p12 pb6 viewport-third viewport-full-ml'>
       <div class='h-full scroll-auto'>
-        <h1 class='txt-h1 mb6'>Title here</h1>
-        <p>Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Sed posuere consectetur est at lobortis. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Aenean lacinia bibendum nulla sed consectetur.
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p>
-        <h2 class='txt-xl mt18 mb12'>subheading</h2>
-        <p>Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Sed posuere consectetur est at lobortis. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Aenean lacinia bibendum nulla sed consectetur.
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p>
+        <h1 class='txt-h1 mb6'>Offshore Wind Capacity</h1>
+        <p>Description of federal offshore wind program and layers on the map.</p>
+        <h2 class='txt-xl mt18 mb12'>Capacity Estimate Description</h2>
+        <p>Formula for calculating capacity estimates. Megawatts produced and houses powered.</p>
         <footer class='mt12 bg-gray-faint txt-s'>
           <ul>
-            <li>Explore the raw <a class='link' href='#'>data</a></li>
-            <li>Map authored by <a class='link' href='#'>Ptolemy</a></li>
+            <li>Explore the <a class='link' href='#'>data</a></li>
+            <li>Map authored by <a class='link' href='#'>Caretta caretta</a></li>
             </p>
         </footer>
       </div>
@@ -86,13 +88,52 @@
     <!-- <script src='js/app.js'></script> -->
 
     <script>
-      var map = L.map('map')
-        .setView([37.1, -72.1], 6.2);
-      var basemap = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
-        subdomains: 'abcd',
-        maxZoom: 19
-      }).addTo(map);
+
+      var map = L.map('map', {
+                 crs: L.CRS.EPSG3857,
+                 center: [37.1, -72.1],
+                 zoom: 6.2,
+                 minZoom: 4
+             });
+
+       // load basemaps
+       var basemaps = {
+           Bathymetry: L.tileLayer.wms('https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?', {
+              layers: 'GEBCO_LATEST'
+           }),
+
+           States: L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+           }),
+
+           //add contours
+
+       };
+
+       //add control to switch basemaps
+       L.control.layers(basemaps).addTo(map);
+       //add bathymetry as default basemap
+       basemaps.Bathymetry.addTo(map);
+
+       //add scale control:
+       L.control.scale().addTo(map);
+
+      // var wmsLayer = L.tileLayer.wms('https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?', {
+      // layers: 'GEBCO_LATEST',
+      // }).addTo(map);
+
+      // AJAX call to load planning area outline polygons
+      $.getJSON("data/BOEM_Wind_Planning_Areas_Outline.geojson", function(data) {
+        // draw the map using GeoJSON data
+        drawMap(data);
+        // console.log(data);
+      });
+
+      // AJAX call to load lease outline polygons
+      $.getJSON("data/BOEM_Lease_Areas_Outline.geojson", function(data) {
+        // draw the map using GeoJSON data
+        drawMap(data);
+        console.log(data);
+      });
 
       // AJAX call to load lease polygons
       $.getJSON("data/BOEM_Lease_Areas.geojson", function(data) {
@@ -107,6 +148,68 @@
         drawMap(data);
         // console.log(data);
       });
+
+
+      // load CSV data
+      omnivore.csv('data/BOEM_Centroids_Acres.csv')
+        .on('ready', function(e) {
+          drawMap(e.target.toGeoJSON());
+          console.log(e);
+        })
+        //throw error if data does not load
+        .on('error', function(e) {
+          console.log(e.error[0].message);
+        });
+
+      //default options for circle markers
+      var options = {
+        pointToLayer: function(feature, ll) {
+          return L.circleMarker(ll, {
+            opacity: 1,
+            weight: 2,
+            fillOpacity: 0,
+          })
+        }
+      }
+
+      // function drawLegend(data) {
+      //
+      //     // create Leaflet control for the legend
+      //     var legend = L.control({
+      //       position: 'bottomright'
+      //     });
+      //
+      //     legend.onAdd = function(map) {
+      //
+      //       var div = L.DomUtil.get("legend");
+      //       //disable unwanted map dragging
+      //       L.DomEvent.disableScrollPropagation(div);
+      //       L.DomEvent.disableClickPropagation(div);
+      //
+      //       return div;
+      //
+      //     }
+      //
+      //     legend.addTo(map);
+
+        // L.geoJson(megawatts, {
+        //             pointToLayer: function(feature,latlng) {
+        //                  var size = getRadius(feature.properties.MW);
+        //                  return L.marker(latlng, {
+        //                      icon: L.icon({
+        //                         iconUrl: 'sample.svg',
+        //                         iconSize: [size, size],
+        //                         iconAnchor: [size/2, size/2]
+        //                     })
+        //                  })
+        //             },
+        //         }).addTo(map);
+        //
+        //         function getRadius(val) {
+        //             var radius = Math.sqrt(val/Math.PI);
+        //             return radius * 3;
+        //         }
+
 
       //begin function to define map drawing paramaters
       function drawMap(data) {
