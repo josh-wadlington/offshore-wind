@@ -1,4 +1,4 @@
-{
+var charts = {
   "profile": "mercator",
   "attribution": "NOAA",
   "name": "50000_1",

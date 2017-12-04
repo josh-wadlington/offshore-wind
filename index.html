@@ -8,6 +8,7 @@
   <meta name='viewport' content='width=device-width, initial-scale=1'>
 
 
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" />
 	<link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css?family=Lora" rel="stylesheet">
@@ -32,8 +33,21 @@
 			margin: 0;
 		}
 
+    .grid {
+      background-color: whitesmoke;
+    }
+
     .legend-large, .legend-small {
         border-radius: 50%;
+    }
+
+    hr.small, hr.large {
+        width: 83px;
+        position: absolute;
+        top: -8px;
+        left: 55px;
+        border: 1px solid #ccc;
+        margin-top: 8px;
     }
 
   </style>
@@ -63,17 +77,16 @@
     <div class='col col--12 col--9-ml h180 h-full-ml'>
       <div id="map" class='viewport-twothirds viewport-full-ml'></div>
 
-      <!-- ui slider -->
-      <div id='slider' class='range w240 bg-white round-ml p12'>
-        <input type='range' />
-      </div>
-
-      <!-- legend -->
-      <div id='legend' class='bg-white round-ml px18 py18'>
-        <h3 class='txt-bold mb12 w-full mx-auto'>Legend</h3>
-        <div class='bg-blue h180 w240 mx-auto'></div>
-      </div>
-    </div>
+    <!-- legend -->
+     <div id='legend' class='bg-white round-ml opacity75 p18'>
+       <h3 class='txt-bold color-black mb12 w-full mx-auto'>Array Capacity <br>in MW </br></h3>
+       <div class='legend-circles relative w180 wmax180'>
+         <div class="legend-large border border--white absolute"></div>
+         <div class="legend-small border border--white absolute"></div>
+         <div class="legend-large-label color-white txt-m absolute"></div>
+         <div class="legend-small-label color-white txt-m absolute"></div>
+       </div>
+     </div>
 
     <!-- load jquery and leaflet libraries -->
     <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
@@ -87,27 +100,35 @@
     <!-- reference to js as relative path -->
     <!-- <script src='js/app.js'></script> -->
 
+    <script src="data/Centroids_Acres_MW.js"></script>
+
     <script>
 
+      //initialize map
       var map = L.map('map', {
-                 crs: L.CRS.EPSG3857,
+                 // crs: L.CRS.EPSG3857,
                  center: [37.1, -72.1],
                  zoom: 6.2,
                  minZoom: 4
              });
 
-       // load basemaps
-       var basemaps = {
+      // load basemaps
+      var basemaps = {
+           //bathy - shows continental shelf break
            Bathymetry: L.tileLayer.wms('https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?', {
               layers: 'GEBCO_LATEST'
            }),
-
-           States: L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+           //osm - shows maritime boundaries
+           'Marine Boundaries': L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
            }),
-
-           //add contours
-
+           //NOAA charts
+           'Nautical Charts': L.tileLayer('//tileservice.charts.noaa.gov/tiles/50000_1/{z}/{x}/{y}.png', {
+           }),
        };
+
+       //add background basemap to display under NOAA Nautical Charts
+       L.mapbox.accessToken = 'pk.eyJ1Ijoiam9tYWxpcXVlIiwiYSI6ImNqOWZtYWl6dDJvc2EzM25yNXg0OHNkczEifQ.g9EERDYT3JO4Xt3RQUr91g';
+       L.mapbox.tileLayer('mapbox.streets').addTo(map);
 
        //add control to switch basemaps
        L.control.layers(basemaps).addTo(map);
@@ -116,10 +137,6 @@
 
        //add scale control:
        L.control.scale().addTo(map);
-
-      // var wmsLayer = L.tileLayer.wms('https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?', {
-      // layers: 'GEBCO_LATEST',
-      // }).addTo(map);
 
       // AJAX call to load planning area outline polygons
       $.getJSON("data/BOEM_Wind_Planning_Areas_Outline.geojson", function(data) {
@@ -132,11 +149,11 @@
       $.getJSON("data/BOEM_Lease_Areas_Outline.geojson", function(data) {
         // draw the map using GeoJSON data
         drawMap(data);
-        console.log(data);
+        // console.log(data);
       });
 
       // AJAX call to load lease polygons
-      $.getJSON("data/BOEM_Lease_Areas.geojson", function(data) {
+      var leasePolys = $.getJSON("data/BOEM_Lease_Areas.geojson", function(data) {
         // draw the map using GeoJSON data
         drawMap(data);
         console.log(data);
@@ -149,74 +166,60 @@
         // console.log(data);
       });
 
+      //add capacity estimates
+      L.geoJson(acresMW, {
+          pointToLayer: function(feature,latlng) {
+              return L.circleMarker(latlng, {
+                  color: '#a64dff',
+                  fillColor: '#bf80ff',
+                  weight: 1,
+                  stroke: 1,
+                  fillOpacity: .5,
+                  radius: getRadius(feature.properties.MW)
+              });
+          },
+      }).addTo(map);
 
-      // load CSV data
-      omnivore.csv('data/BOEM_Centroids_Acres.csv')
-        .on('ready', function(e) {
-          drawMap(e.target.toGeoJSON());
-          console.log(e);
-        })
-        //throw error if data does not load
-        .on('error', function(e) {
-          console.log(e.error[0].message);
-        });
-
-      //default options for circle markers
-      var options = {
-        pointToLayer: function(feature, ll) {
-          return L.circleMarker(ll, {
-            opacity: 1,
-            weight: 2,
-            fillOpacity: 0,
-          })
-        }
+      //function to get prop symbol size
+      function getRadius(val) {
+          var radius = Math.sqrt(val/Math.PI);
+          return radius * 1.8;
       }
 
-      // function drawLegend(data) {
-      //
-      //     // create Leaflet control for the legend
-      //     var legend = L.control({
-      //       position: 'bottomright'
-      //     });
-      //
-      //     legend.onAdd = function(map) {
-      //
-      //       var div = L.DomUtil.get("legend");
-      //       //disable unwanted map dragging
-      //       L.DomEvent.disableScrollPropagation(div);
-      //       L.DomEvent.disableClickPropagation(div);
-      //
-      //       return div;
-      //
-      //     }
-      //
-      //     legend.addTo(map);
+      // // load CSV data
+      // omnivore.csv('data/BOEM_Centroids_Acres.csv')
+      //   .on('ready', function(e) {
+      //     drawMap(e.target.toGeoJSON());
+      //     // drawLegend(e.target.toGeoJSON());
+      //     console.log(e);
+      //   })
+      //   //throw error if data does not load
+      //   .on('error', function(e) {
+      //     console.log(e.error[0].message);
+      //   });
 
-        // L.geoJson(megawatts, {
-        //             pointToLayer: function(feature,latlng) {
-        //                  var size = getRadius(feature.properties.MW);
-        //                  return L.marker(latlng, {
-        //                      icon: L.icon({
-        //                         iconUrl: 'sample.svg',
-        //                         iconSize: [size, size],
-        //                         iconAnchor: [size/2, size/2]
-        //                     })
-        //                  })
-        //             },
-        //         }).addTo(map);
-        //
-        //         function getRadius(val) {
-        //             var radius = Math.sqrt(val/Math.PI);
-        //             return radius * 3;
-        //         }
+      // create control for legend
+      var legend = L.control({position: 'bottomright'});
 
+      legend.onAdd = function(map) {
+
+            var div = L.DomUtil.get("legend");
+            //disable unwanted map dragging
+            L.DomEvent.disableScrollPropagation(div);
+            L.DomEvent.disableClickPropagation(div);
+
+            return div;
+
+          };
+
+      legend.addTo(map);
 
       //begin function to define map drawing paramaters
       function drawMap(data) {
         // create Leaflet data layer and add to map
         var dataLayer = L.geoJson(data, {
           style: function(feature) {
-            // style counties with initial default path options
+            // style lease areas with initial default path options
             return {
               color: 'black',
               weight: .5,
@@ -269,7 +272,7 @@
 
     			// assemble string sequence of info for tooltip
     			var tooltipInfo = "<b>" + "Block #: " + props["BLOCK_NUMB"]
-    			// bind a tooltip to layer with county-specific information
+    			// bind a tooltip to layer
     			layer.bindTooltip(tooltipInfo, {
     				sticky: true
     			});
@@ -293,7 +296,6 @@
   			$(".info").hide();
   		}
 
-
       //begin function to define info layer panel attributes and values
   		function updateInfo(layer) {
   			//variable to get feature values
@@ -307,16 +309,92 @@
 
   		}
 
-
-      // // mapbox access token for jomalique account
-      //   L.mapbox.accessToken = 'pk.eyJ1Ijoiam9tYWxpcXVlIiwiYSI6ImNqOWZtYWl6dDJvc2EzM25yNXg0OHNkczEifQ.g9EERDYT3JO4Xt3RQUr91g';
+      // !!NEEDS WORK - function to draw proportional symbols in legend
+      // function drawLegend(data) {
       //
-      //   // create the Leaflet map using mapbox.light tiles
-      //   var map = L.mapbox.map('map', 'mapbox.light', {
-      //     zoomSnap: .1,
-      //     center: [37.1, -72.1],
-      //     zoom: 6.2
-      //   });
+      //     // create Leaflet control for the legend
+      //     var legend = L.control({
+      //       position: 'bottomright'
+      //     });
+      //
+      //     legend.onAdd = function(map) {
+      //
+      //       var div = L.DomUtil.get("legend");
+      //       //disable unwanted map dragging
+      //       L.DomEvent.disableScrollPropagation(div);
+      //       L.DomEvent.disableClickPropagation(div);
+      //
+      //       return div;
+      //
+      //     }
+      //
+      //     legend.addTo(map);
+      //
+      //     var dataValues = [];
+      //
+      //     data.features.map(function(megaWatts) {
+      //       //loop through data values
+      //       for (var MW in feature.properties) {
+      //
+      //         var attribute = feature.properties[MW];
+      //         //check if number
+      //         if (Number(attribute)) {
+      //
+      //           dataValues.push(attribute);
+      //         }
+      //
+      //       }
+      //     });
+      //
+      //     // sort our array
+      //     var sortedValues = dataValues.sort(function(a, b) {
+      //       return b - a;
+      //     });
+      //
+      //     // round the highest number and use as our large circle diameter
+      //     var maxValue = Math.round(sortedValues[0] / 1000) * 1000;
+      //
+      //     // calc the diameters
+      //     var largeDiameter = calcRadius(maxValue) * 2,
+      //       smallDiameter = largeDiameter / 2;
+      //
+      //     // select our circles container and set the height
+      //     $(".legend-circles").css('height', largeDiameter.toFixed());
+      //
+      //     // set width and height for large circle
+      //     $('.legend-large').css({
+      //       'width': largeDiameter.toFixed(),
+      //       'height': largeDiameter.toFixed()
+      //     });
+      //     // set width and height for small circle and position
+      //     $('.legend-small').css({
+      //       'width': smallDiameter.toFixed(),
+      //       'height': smallDiameter.toFixed(),
+      //       'top': largeDiameter - smallDiameter,
+      //       'left': smallDiameter / 2
+      //     })
+      //
+      //     // label the max and median value
+      //     $(".legend-large-label").html(maxValue);
+      //     $(".legend-small-label").html((maxValue / 2));
+      //
+      //     // adjust the position of the large based on size of circle
+      //     $(".legend-large-label").css({
+      //       'top': -11,
+      //       'left': largeDiameter + 30,
+      //     });
+      //
+      //     // adjust the position of the large based on size of circle
+      //     $(".legend-small-label").css({
+      //       'top': smallDiameter - 11,
+      //       'left': largeDiameter + 30
+      //     });
+      //
+      //     // insert a couple hr elements and use to connect value label to top of each circle
+      //     $("<hr class='large'>").insertBefore(".legend-large-label")
+      //     $("<hr class='small'>").insertBefore(".legend-small-label").css('top', largeDiameter - smallDiameter - 8);
+      //
+      //   }
 
     </script>
 
