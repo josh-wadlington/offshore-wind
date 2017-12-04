@@ -15,7 +15,6 @@
 
   <!-- reference to mapbox assembly library -->
   <link href="https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.min.css" rel="stylesheet">
-  <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 
   <!-- <link href='css/styles.css' rel='stylesheet' /> -->
   <style>
@@ -94,7 +93,6 @@
 
     <!-- load assembly, mapbox and omnivore libraries -->
     <script async defer src="https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.js"></script>
-    <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <script src='https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
 
     <!-- reference to js as relative path -->
@@ -106,7 +104,6 @@
 
       //initialize map
       var map = L.map('map', {
-                 // crs: L.CRS.EPSG3857,
                  center: [37.1, -72.1],
                  zoom: 6.2,
                  minZoom: 4
@@ -125,10 +122,11 @@
            'Nautical Charts': L.tileLayer('//tileservice.charts.noaa.gov/tiles/50000_1/{z}/{x}/{y}.png', {
            }),
        };
-
-       //add background basemap to display under NOAA Nautical Charts
-       L.mapbox.accessToken = 'pk.eyJ1Ijoiam9tYWxpcXVlIiwiYSI6ImNqOWZtYWl6dDJvc2EzM25yNXg0OHNkczEifQ.g9EERDYT3JO4Xt3RQUr91g';
-       L.mapbox.tileLayer('mapbox.streets').addTo(map);
+       
+        // add CARTO voyager tiles to display under NOAA Nautical Charts
+        L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', {
+            maxZoom: 18, attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy;<a href="https://carto.com/attribution">CARTO</a>'
+        }).addTo(map);
 
        //add control to switch basemaps
        L.control.layers(basemaps).addTo(map);
