@@ -15,7 +15,6 @@
 
   <!-- reference to mapbox assembly library -->
   <link href="https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.min.css" rel="stylesheet">
-  <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
 
   <!-- <link href='css/styles.css' rel='stylesheet' /> -->
   <style>
@@ -94,19 +93,12 @@
 
     <!-- load assembly, mapbox and omnivore libraries -->
     <script async defer src="https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.js"></script>
-    <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
     <script src='https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
-
-    <!-- reference to js as relative path -->
-    <!-- <script src='js/app.js'></script> -->
-
-    <script src="data/Centroids_Acres_MW.js"></script>
 
     <script>
 
       //initialize map
       var map = L.map('map', {
-                 // crs: L.CRS.EPSG3857,
                  center: [37.1, -72.1],
                  zoom: 6.2,
                  minZoom: 4
@@ -126,9 +118,10 @@
            }),
        };
 
-       //add background basemap to display under NOAA Nautical Charts
-       L.mapbox.accessToken = 'pk.eyJ1Ijoiam9tYWxpcXVlIiwiYSI6ImNqOWZtYWl6dDJvc2EzM25yNXg0OHNkczEifQ.g9EERDYT3JO4Xt3RQUr91g';
-       L.mapbox.tileLayer('mapbox.streets').addTo(map);
+      //   // add CARTO voyager tiles to display under NOAA Nautical Charts
+        L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', {
+            maxZoom: 18, attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy;<a href="https://carto.com/attribution">CARTO</a>'
+        }).addTo(map);
 
        //add control to switch basemaps
        L.control.layers(basemaps).addTo(map);
@@ -138,70 +131,115 @@
        //add scale control:
        L.control.scale().addTo(map);
 
-      // AJAX call to load planning area outline polygons
-      $.getJSON("data/BOEM_Wind_Planning_Areas_Outline.geojson", function(data) {
-        // draw the map using GeoJSON data
-        drawMap(data);
-        // console.log(data);
+      // load all data asynchronously first
+      $.when(
+          $.getJSON('data/BOEM_Wind_Planning_Areas_Outline.geojson'),
+          $.getJSON('data/BOEM_Lease_Areas_Outline.geojson'),
+          $.getJSON('data/BOEM_Lease_Areas.geojson'),
+          $.getJSON('data/BOEM_Wind_Planning_Areas.geojson'),
+          $.getJSON('data/Centroids_Acres_MW.json')
+      ).done(function(planningOutlineData, leaseOutlineData, leaseData, planningData, centroidsData) {
+
+        // you now have access to all data here. Call drawMap() function once
+        drawMap(planningOutlineData, leaseOutlineData, leaseData, planningData, centroidsData)
+
+
       });
 
-      // AJAX call to load lease outline polygons
-      $.getJSON("data/BOEM_Lease_Areas_Outline.geojson", function(data) {
-        // draw the map using GeoJSON data
-        drawMap(data);
-        // console.log(data);
-      });
+      function drawMap(planningOutlineData, leaseOutlineData, leaseData, planningData, centroidsData) {
 
-      // AJAX call to load lease polygons
-      var leasePolys = $.getJSON("data/BOEM_Lease_Areas.geojson", function(data) {
-        // draw the map using GeoJSON data
-        drawMap(data);
-        console.log(data);
-      });
 
-      // AJAX call to load planning area polygons
-      $.getJSON("data/BOEM_Wind_Planning_Areas.geojson", function(data) {
-        // draw the map using GeoJSON data
-        drawMap(data);
-        // console.log(data);
-      });
+        // create Leaflet data layer and add to map
+        var dataLayer = L.geoJson(leaseData, {
+            style: function(feature) {
+              // style lease areas with initial default path options
+              return {
+                color: 'black',
+                weight: .5,
+                fillOpacity: .5
+              };
+            }
+          }).addTo(map);
 
-      //add capacity estimates
-      L.geoJson(acresMW, {
-          pointToLayer: function(feature,latlng) {
-              return L.circleMarker(latlng, {
-                  color: '#a64dff',
-                  fillColor: '#bf80ff',
-                  weight: 1,
-                  stroke: 1,
-                  fillOpacity: .5,
-                  radius: getRadius(feature.properties.MW)
+          //get info panel data from updateInfo function
+          dataLayer.eachLayer(function(layer) {
+            layer.on('mouseover', function() {
+              updateInfo(this);
+            });
+          });
+
+          //highlight feature on mouseover
+          dataLayer.eachLayer(function(layer) {
+            layer.on('mouseover', function() {
+              layer.setStyle({
+                color: 'yellow',
+                opacity: 1,
+                weight: 2
+              }).bringToFront();
+            });
+          });
+          //return feature to default style after mouseout
+          dataLayer.eachLayer(function(layer) {
+            layer.on('mouseout', function() {
+              layer.setStyle({
+                color: 'black',
+                weight: .5,
               });
-          },
-      }).addTo(map);
+            });
+          });
 
+          //draw info panel only when user hovers over county
+          dataLayer.on('mouseover', function() {
+            $(".info").show();
+          });
+          dataLayer.on('mouseout', function() {
+            $(".info").hide();
+          });
+
+          dataLayer.eachLayer(function(layer) {
+            // shortcut reference for layer properties
+            var props = layer.feature.properties;
+
+            // assemble string sequence of info for tooltip
+            var tooltipInfo = "<b>" + "Block #: " + props["BLOCK_NUMB"]
+            // bind a tooltip to layer
+            layer.bindTooltip(tooltipInfo, {
+              sticky: true
+            });
+          });
+
+        //add capacity estimates
+        L.geoJson(centroidsData, {
+            pointToLayer: function(feature,latlng) {
+                return L.circleMarker(latlng, {
+                    color: '#a64dff',
+                    fillColor: '#bf80ff',
+                    weight: 1,
+                    stroke: 1,
+                    fillOpacity: .5,
+                    radius: getRadius(feature.properties.MW)
+                });
+            },
+        }).addTo(map);
+      
+        drawInfo();
+        drawLegend();
+
+      
+      
+      }
       //function to get prop symbol size
       function getRadius(val) {
           var radius = Math.sqrt(val/Math.PI);
           return radius * 1.8;
       }
 
-      // // load CSV data
-      // omnivore.csv('data/BOEM_Centroids_Acres.csv')
-      //   .on('ready', function(e) {
-      //     drawMap(e.target.toGeoJSON());
-      //     // drawLegend(e.target.toGeoJSON());
-      //     console.log(e);
-      //   })
-      //   //throw error if data does not load
-      //   .on('error', function(e) {
-      //     console.log(e.error[0].message);
-      //   });
+      function drawLegend() {
 
-      // create control for legend
-      var legend = L.control({position: 'bottomright'});
+        // create control for legend
+        var legend = L.control({position: 'bottomright'});
 
-      legend.onAdd = function(map) {
+        legend.onAdd = function(map) {
 
             var div = L.DomUtil.get("legend");
             //disable unwanted map dragging
@@ -212,71 +250,7 @@
 
           };
 
-      legend.addTo(map);
-
-      //begin function to define map drawing paramaters
-      function drawMap(data) {
-        // create Leaflet data layer and add to map
-        var dataLayer = L.geoJson(data, {
-          style: function(feature) {
-            // style lease areas with initial default path options
-            return {
-              color: 'black',
-              weight: .5,
-              fillOpacity: .5
-            };
-          }
-        }).addTo(map);
-
-        //statement to draw info panel
-        drawInfo();
-
-        //get info panel data from updateInfo function
-  			dataLayer.eachLayer(function(layer) {
-  				layer.on('mouseover', function() {
-  					updateInfo(this);
-  				});
-  			});
-
-        //highlight feature on mouseover
-        dataLayer.eachLayer(function(layer) {
-          layer.on('mouseover', function() {
-            layer.setStyle({
-              color: 'yellow',
-              opacity: 1,
-              weight: 2
-            }).bringToFront();
-          });
-        });
-        //return feature to default style after mouseout
-        dataLayer.eachLayer(function(layer) {
-          layer.on('mouseout', function() {
-            layer.setStyle({
-              color: 'black',
-              weight: .5,
-            });
-          });
-        });
-
-        //draw info panel only when user hovers over county
-  			dataLayer.on('mouseover', function() {
-  				$(".info").show();
-  			});
-  			dataLayer.on('mouseout', function() {
-  				$(".info").hide();
-  			});
-
-        dataLayer.eachLayer(function(layer) {
-    			// shortcut reference for layer properties
-    			var props = layer.feature.properties;
-
-    			// assemble string sequence of info for tooltip
-    			var tooltipInfo = "<b>" + "Block #: " + props["BLOCK_NUMB"]
-    			// bind a tooltip to layer
-    			layer.bindTooltip(tooltipInfo, {
-    				sticky: true
-    			});
-    		});
+        legend.addTo(map);
 
       }
 
@@ -295,7 +269,7 @@
   			//hide when no mouseover
   			$(".info").hide();
   		}
-
+     
       //begin function to define info layer panel attributes and values
   		function updateInfo(layer) {
   			//variable to get feature values
