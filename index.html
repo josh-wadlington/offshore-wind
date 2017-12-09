@@ -7,47 +7,92 @@
   <meta charset='utf-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
 
-
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" />
-	<link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
-	<link href="https://fonts.googleapis.com/css?family=Lora" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Lora" rel="stylesheet">
 
   <!-- reference to mapbox assembly library -->
   <link href="https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.min.css" rel="stylesheet">
 
   <!-- <link href='css/styles.css' rel='stylesheet' /> -->
   <style>
-
     /*rules for info panel*/
-		.info {
-			padding: 6px 8px;
-			font-size: 1em;
-			background: rgba(255, 255, 255, 0.8);
-			box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-			border-radius: 5px;
-			text-align: right;
-		}
-		.info h3 {
-			margin: 0;
-		}
+    .info {
+      padding: 6px 8px;
+      font-size: 1em;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+      border-radius: 5px;
+      text-align: left;
+    }
+
+    .info h3 {
+      margin: 0;
+    }
 
     .grid {
       background-color: whitesmoke;
     }
 
-    .legend-large, .legend-small {
-        border-radius: 50%;
-    }
+    /*rules for turbine svg in left panel*/
+    #turbine {
+          position: absolute;
+          bottom: 150px;
+          left: -45px;
+          width: 375px;
+          height: 375px;
+          margin: 20px auto;
+          padding: 0 15px;
+          opacity: .1;
+          fill-opacity: 0;
+      }
 
-    hr.small, hr.large {
-        width: 83px;
-        position: absolute;
-        top: -8px;
-        left: 55px;
-        border: 1px solid #ccc;
-        margin-top: 8px;
-    }
+    /*rules for legend*/
+    #side-panel {
+         position: fixed;
+         bottom: 0;
+         right: 0;
+         width: 280px;
+         margin: 20px auto;
+         padding: 0 15px;
+         background: rgba(256, 256, 256, .8);
+         border: 1px solid grey;
+         border-radius: 3px;
+         z-index: 800;
+     }
+
+     p {
+         font-size: .9em;
+         line-height: 1.5em;
+     }
+
+     a {
+         color: #005daa;
+         text-decoration: none;
+     }
+
+     a:hover {
+         text-decoration: underline;
+     }
+     #legend {
+         position: relative;
+         margin: 20px 0;
+     }
+     #legend-large, #legend-small {
+         border: 2px solid grey;
+         border-radius: 50%;
+         background: whitesmoke;
+         position: absolute;
+     }
+     #legend-large-label, #legend-small-label {
+         position: absolute;
+     }
+     #legend hr.small, #legend hr.large {
+         width: 83px;
+         position: absolute;
+         top: -8px;
+         left: 66px;
+     }
 
   </style>
 
@@ -59,15 +104,18 @@
   <div class='grid'>
     <div class='col col--12 col--3-ml p12 pb6 viewport-third viewport-full-ml'>
       <div class='h-full scroll-auto'>
-        <h1 class='txt-h1 mb6'>Offshore Wind Capacity</h1>
-        <p>Description of federal offshore wind program and layers on the map.</p>
-        <h2 class='txt-xl mt18 mb12'>Capacity Estimate Description</h2>
-        <p>Formula for calculating capacity estimates. Megawatts produced and houses powered.</p>
-        <footer class='mt12 bg-gray-faint txt-s'>
+        <h1 class='txt-h2 mb8 color-blue-dark'>Offshore Wind</h1>
+        <p>The Bureau of Ocean Energy Management (BOEM) is responsible for overseeing offshore renewable energy development in Federal waters. To date 13 Federal leases have been issued on the Atlantic Outer Continental Shelf and several more pre-lease planning
+          areas have been delineated.</p>
+        <h2 class='txt-h3 mt18 mb8 color-blue-dark'>Capacity Estimate</h2>
+        <p>Array power density is a measure of output in megawatts (MW) of offshore wind installations. The proportional symbols on this map use a capacity array power density calculation of 3 MW per square kilometer (MW/km2) based on likely array spacing
+          of U.S. projects.</p>
+        <footer class='absolute bottom mt12 bg-gray-faint txt-s'>
           <ul>
-            <li>Explore the <a class='link' href='#'>data</a></li>
-            <li>Map authored by <a class='link' href='#'>Caretta caretta</a></li>
-            </p>
+            <li>Read the NREL <a class='link txt-underline-on-hover' href='https://www.nrel.gov/docs/fy16osti/66599.pdf'>report</a> describing array power density.</li>
+            <li>Download BOEM <a class='link txt-underline-on-hover' href='https://www.boem.gov/Renewable-Energy-GIS-Data/'>leases and planning areas</a>.</li>
+            <li>Read the DOI/DOE <a class='link txt-underline-on-hover' href='https://energy.gov/sites/prod/files/2016/09/f33/National-Offshore-Wind-Strategy-report-09082016.pdf'>Offshore Wind Strategy</a>.</li>
+            <li>Map authored by <a class='link txt-underline-on-hover' href='https://josh-wadlington.github.io/'>Josh Wadlington</a></li>
         </footer>
       </div>
     </div>
@@ -76,81 +124,88 @@
     <div class='col col--12 col--9-ml h180 h-full-ml'>
       <div id="map" class='viewport-twothirds viewport-full-ml'></div>
 
-    <!-- legend -->
-     <div id='legend' class='bg-white round-ml opacity75 p18'>
-       <h3 class='txt-bold color-black mb12 w-full mx-auto'>Array Capacity <br>in MW </br></h3>
-       <div class='legend-circles relative w180 wmax180'>
-         <div class="legend-large border border--white absolute"></div>
-         <div class="legend-small border border--white absolute"></div>
-         <div class="legend-large-label color-white txt-m absolute"></div>
-         <div class="legend-small-label color-white txt-m absolute"></div>
-       </div>
-     </div>
+    <section id="side-panel">
+        <p>This proportional symbol map shows gross capacity array power density estimates for offshore wind projects on the Atlantic Outer Continental Shelf.
+        <h3><b>Megawatts</b></h3>
+        <div id='legend'>
+            <div id="legend-large"></div>
+            <div id="legend-small"></div>
+            <div id="legend-large-label"></div>
+            <div id="legend-small-label"></div>
+        </div>
+        <p>Read the <i>2016 Offshore Wind Energy Resource Assessment for the United States</i> that describes capacity array power density, available from <a href="https://www.nrel.gov/docs/fy16osti/66599.pdf">NREL</a>.</p>
+    </section>
 
-    <!-- load jquery and leaflet libraries -->
-    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"></script>
+    <section id="turbine">
+        <img src="graphics/Wind_Turbine.svg">
+    </section>
 
-    <!-- load assembly, mapbox and omnivore libraries -->
-    <script async defer src="https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.js"></script>
-    <script src='https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
+      <!-- load jquery and leaflet libraries -->
+      <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+      <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"></script>
 
-    <script>
+      <!-- load assembly, mapbox and omnivore libraries -->
+      <script async defer src="https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.js"></script>
+      <script src='https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
 
-      //initialize map
-      var map = L.map('map', {
-                 center: [37.1, -72.1],
-                 zoom: 6.2,
-                 minZoom: 4
-             });
+      <script>
+        //initialize map
+        var map = L.map('map', {
+          center: [37.1, -72.1],
+          zoom: 6.2,
+          minZoom: 4
+        });
 
-      // load basemaps
-      var basemaps = {
-           //bathy - shows continental shelf break
-           Bathymetry: L.tileLayer.wms('https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?', {
-              layers: 'GEBCO_LATEST'
-           }),
-           //osm - shows maritime boundaries
-           'Marine Boundaries': L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-           }),
-           //NOAA charts
-           'Nautical Charts': L.tileLayer('//tileservice.charts.noaa.gov/tiles/50000_1/{z}/{x}/{y}.png', {
-           }),
-       };
+        // load basemaps
+        var basemaps = {
+          //bathy - shows continental shelf break
+          Bathymetry: L.tileLayer.wms('https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?', {
+            layers: 'GEBCO_LATEST',
+            attribution: '&copy; <a href="https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/">GEBCO</a>'
+          }),
+          //osm - shows maritime boundaries
+          'Marine Boundaries': L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          }),
+          //NOAA charts
+          'Nautical Charts': L.tileLayer('//tileservice.charts.noaa.gov/tiles/50000_1/{z}/{x}/{y}.png', {
+          }),
+        };
 
-      //   // add CARTO voyager tiles to display under NOAA Nautical Charts
+        // add CARTO voyager tiles to display under NOAA Nautical Charts
         L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', {
-            maxZoom: 18, attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy;<a href="https://carto.com/attribution">CARTO</a>'
+          maxZoom: 18,
+          attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy;<a href="https://carto.com/attribution">CARTO</a> &copy; <a href="https://tileservice.charts.noaa.gov/">NOAA</a>'
         }).addTo(map);
 
-       //add control to switch basemaps
-       L.control.layers(basemaps).addTo(map);
-       //add bathymetry as default basemap
-       basemaps.Bathymetry.addTo(map);
+        //add control to switch basemaps
+        L.control.layers(basemaps).addTo(map);
+        //add bathymetry as default basemap
+        basemaps.Bathymetry.addTo(map);
 
-       //add scale control:
-       L.control.scale().addTo(map);
+        //add scale control:
+        L.control.scale().addTo(map);
 
-      // load all data asynchronously first
-      $.when(
-          $.getJSON('data/BOEM_Wind_Planning_Areas_Outline.geojson'),
-          $.getJSON('data/BOEM_Lease_Areas_Outline.geojson'),
-          $.getJSON('data/BOEM_Lease_Areas.geojson'),
-          $.getJSON('data/BOEM_Wind_Planning_Areas.geojson'),
+        // load all data asynchronously first
+        $.when(
+          $.getJSON('data/BOEM_Areas.geojson'),
           $.getJSON('data/Centroids_Acres_MW.json')
-      ).done(function(planningOutlineData, leaseOutlineData, leaseData, planningData, centroidsData) {
+        ).done(function(boemAreas, centroidsData) {
 
-        // you now have access to all data here. Call drawMap() function once
-        drawMap(planningOutlineData, leaseOutlineData, leaseData, planningData, centroidsData)
+          console.log(centroidsData);
 
+          // centroidsData.features.sort(function (a, b) {
+          //       return b.properties.MW - a.properties.MW
+          //   });
 
-      });
+          // access to all data here. Call drawMap() function once
+          drawMap(boemAreas, centroidsData);
 
-      function drawMap(planningOutlineData, leaseOutlineData, leaseData, planningData, centroidsData) {
+        });
 
+        function drawMap(boemAreas, centroidsData) {
 
-        // create Leaflet data layer and add to map
-        var dataLayer = L.geoJson(leaseData, {
+          // create Leaflet data layer and add to map
+          var dataLayer = L.geoJson(boemAreas, {
             style: function(feature) {
               // style lease areas with initial default path options
               return {
@@ -183,7 +238,7 @@
             layer.on('mouseout', function() {
               layer.setStyle({
                 color: 'black',
-                weight: .5,
+                weight: .8,
               });
             });
           });
@@ -196,181 +251,110 @@
             $(".info").hide();
           });
 
-          dataLayer.eachLayer(function(layer) {
+          //add proportional symbols to map
+          var symbolLayer = L.geoJson(centroidsData, {
+            pointToLayer: function(feature, latlng) {
+              return L.circleMarker(latlng, {
+                color: '#33001a',
+                fillColor: '#b30059',
+                weight: 1,
+                stroke: 1,
+                fillOpacity: .5,
+                radius: getRadius(feature.properties.MW)
+              });
+            },
+          }).addTo(map);
+
+          symbolLayer.eachLayer(function(layer) {
             // shortcut reference for layer properties
-            var props = layer.feature.properties;
+            var props2 = layer.feature.properties;
 
             // assemble string sequence of info for tooltip
-            var tooltipInfo = "<b>" + "Block #: " + props["BLOCK_NUMB"]
+            var tooltipInfo2 = "<b>Megawatts: " + props2["MW"]
             // bind a tooltip to layer
-            layer.bindTooltip(tooltipInfo, {
+            layer.bindTooltip(tooltipInfo2, {
               sticky: true
             });
           });
 
-        //add capacity estimates
-        L.geoJson(centroidsData, {
-            pointToLayer: function(feature,latlng) {
-                return L.circleMarker(latlng, {
-                    color: '#a64dff',
-                    fillColor: '#bf80ff',
-                    weight: 1,
-                    stroke: 1,
-                    fillOpacity: .5,
-                    radius: getRadius(feature.properties.MW)
-                });
-            },
-        }).addTo(map);
-      
-        drawInfo();
-        drawLegend();
+          drawInfo();
+          drawLegend(centroidsData);
 
-      
-      
-      }
-      //function to get prop symbol size
-      function getRadius(val) {
-          var radius = Math.sqrt(val/Math.PI);
+        }
+
+        //function to get prop symbol size
+        function getRadius(val) {
+          var radius = Math.sqrt(val / Math.PI);
           return radius * 1.8;
-      }
+        }
 
-      function drawLegend() {
-
-        // create control for legend
-        var legend = L.control({position: 'bottomright'});
-
-        legend.onAdd = function(map) {
-
-            var div = L.DomUtil.get("legend");
-            //disable unwanted map dragging
-            L.DomEvent.disableScrollPropagation(div);
-            L.DomEvent.disableClickPropagation(div);
-
+        //begin function to draw info panel
+        function drawInfo() {
+          //variable to indicate position of panel
+          var info = L.control({
+            position: 'topright'
+          });
+          info.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'info');
             return div;
+          }
+          //add info to map
+          info.addTo(map);
+          //hide when no mouseover
+          $(".info").hide();
+        }
 
-          };
+        //begin function to define info layer panel attributes and values
+        function updateInfo(layer) {
+          //variable to get feature values
+          var props = layer.feature.properties;
 
-        legend.addTo(map);
+          //descriptions of values to be displayed in panel on map
+          var html = "<h1><b>" + props['Type'] + ":</b></h1>" + props["Name"] + "</b>"
+          //add values to map
+          $(".info").html(html);
 
-      }
+        }
 
-      //begin function to draw info panel
-  		function drawInfo() {
-  			//variable to indicate position of panel
-  			var info = L.control({
-  				position: 'topright'
-  			});
-  			info.onAdd = function(map) {
-  				var div = L.DomUtil.create('div', 'info');
-  				return div;
-  			}
-  			//add info to map
-  			info.addTo(map);
-  			//hide when no mouseover
-  			$(".info").hide();
-  		}
-     
-      //begin function to define info layer panel attributes and values
-  		function updateInfo(layer) {
-  			//variable to get feature values
-  			var props = layer.feature.properties;
+        function drawLegend(centroidsData) {
 
-  			//descriptions of values to be displayed in panel on map
-  			var html = "<h3>Lease #: " + props['Lease_Numb'] + "</h3>" +
-                   "Lessee: <b>" + props["Company"] + "</b><br>"
-  			//add values to map
-  			$(".info").html(html);
+          var largeDiameter = getRadius(centroidsData.features[0].properties.MW) * 2,
+              smallDiameter = largeDiameter/2;
 
-  		}
+          $("#legend").css('height', largeDiameter.toFixed());
 
-      // !!NEEDS WORK - function to draw proportional symbols in legend
-      // function drawLegend(data) {
-      //
-      //     // create Leaflet control for the legend
-      //     var legend = L.control({
-      //       position: 'bottomright'
-      //     });
-      //
-      //     legend.onAdd = function(map) {
-      //
-      //       var div = L.DomUtil.get("legend");
-      //       //disable unwanted map dragging
-      //       L.DomEvent.disableScrollPropagation(div);
-      //       L.DomEvent.disableClickPropagation(div);
-      //
-      //       return div;
-      //
-      //     }
-      //
-      //     legend.addTo(map);
-      //
-      //     var dataValues = [];
-      //
-      //     data.features.map(function(megaWatts) {
-      //       //loop through data values
-      //       for (var MW in feature.properties) {
-      //
-      //         var attribute = feature.properties[MW];
-      //         //check if number
-      //         if (Number(attribute)) {
-      //
-      //           dataValues.push(attribute);
-      //         }
-      //
-      //       }
-      //     });
-      //
-      //     // sort our array
-      //     var sortedValues = dataValues.sort(function(a, b) {
-      //       return b - a;
-      //     });
-      //
-      //     // round the highest number and use as our large circle diameter
-      //     var maxValue = Math.round(sortedValues[0] / 1000) * 1000;
-      //
-      //     // calc the diameters
-      //     var largeDiameter = calcRadius(maxValue) * 2,
-      //       smallDiameter = largeDiameter / 2;
-      //
-      //     // select our circles container and set the height
-      //     $(".legend-circles").css('height', largeDiameter.toFixed());
-      //
-      //     // set width and height for large circle
-      //     $('.legend-large').css({
-      //       'width': largeDiameter.toFixed(),
-      //       'height': largeDiameter.toFixed()
-      //     });
-      //     // set width and height for small circle and position
-      //     $('.legend-small').css({
-      //       'width': smallDiameter.toFixed(),
-      //       'height': smallDiameter.toFixed(),
-      //       'top': largeDiameter - smallDiameter,
-      //       'left': smallDiameter / 2
-      //     })
-      //
-      //     // label the max and median value
-      //     $(".legend-large-label").html(maxValue);
-      //     $(".legend-small-label").html((maxValue / 2));
-      //
-      //     // adjust the position of the large based on size of circle
-      //     $(".legend-large-label").css({
-      //       'top': -11,
-      //       'left': largeDiameter + 30,
-      //     });
-      //
-      //     // adjust the position of the large based on size of circle
-      //     $(".legend-small-label").css({
-      //       'top': smallDiameter - 11,
-      //       'left': largeDiameter + 30
-      //     });
-      //
-      //     // insert a couple hr elements and use to connect value label to top of each circle
-      //     $("<hr class='large'>").insertBefore(".legend-large-label")
-      //     $("<hr class='small'>").insertBefore(".legend-small-label").css('top', largeDiameter - smallDiameter - 8);
-      //
-      //   }
+          $('#legend-large').css({
+              'width': largeDiameter.toFixed(),
+              'height': largeDiameter.toFixed()
+          })
 
-    </script>
+          $("#legend-large-label").html(centroidsData.features[0].properties.MW.toLocaleString());
+
+          $("#legend-large-label").css({
+              'left': largeDiameter + 30,
+              'top' : -8
+          });
+
+          $('#legend-small').css({
+              'width': smallDiameter.toFixed(),
+              'height': smallDiameter.toFixed(),
+              'top': largeDiameter - smallDiameter,
+              'left': smallDiameter/2
+          })
+
+          $("#legend-small-label").html((centroidsData.features[0].properties.MW/2).toLocaleString());
+
+          $("#legend-small-label").css({
+              'top': smallDiameter - 8,
+              'left': largeDiameter + 30
+          });
+
+          $("<hr class='large'>").insertBefore("#legend-large-label")
+          $("<hr class='small'>").insertBefore("#legend-small-label").css('top', largeDiameter - smallDiameter - 8);
+
+        }
+
+      </script>
 
 </body>
 
