@@ -81,7 +81,7 @@
      #legend-large, #legend-small {
          border: 2px solid grey;
          border-radius: 50%;
-         background: whitesmoke;
+         background: #b30059;
          position: absolute;
      }
      #legend-large-label, #legend-small-label {
@@ -112,7 +112,7 @@
           of U.S. projects.</p>
         <footer class='absolute bottom mt12 bg-gray-faint txt-s'>
           <ul>
-            <li>Read the NREL <a class='link txt-underline-on-hover' href='https://www.nrel.gov/docs/fy16osti/66599.pdf'>report</a> describing array power density.</li>
+            <!-- <li>Read the NREL <a class='link txt-underline-on-hover' href='https://www.nrel.gov/docs/fy16osti/66599.pdf'>report</a> describing array power density.</li> -->
             <li>Download BOEM <a class='link txt-underline-on-hover' href='https://www.boem.gov/Renewable-Energy-GIS-Data/'>leases and planning areas</a>.</li>
             <li>Read the DOI/DOE <a class='link txt-underline-on-hover' href='https://energy.gov/sites/prod/files/2016/09/f33/National-Offshore-Wind-Strategy-report-09082016.pdf'>Offshore Wind Strategy</a>.</li>
             <li>Map authored by <a class='link txt-underline-on-hover' href='https://josh-wadlington.github.io/'>Josh Wadlington</a></li>
@@ -191,14 +191,14 @@
           $.getJSON('data/Centroids_Acres_MW.json')
         ).done(function(boemAreas, centroidsData) {
 
-          console.log(centroidsData);
+          // console.log(centroidsData);
 
-          // centroidsData.features.sort(function (a, b) {
-          //       return b.properties.MW - a.properties.MW
-          //   });
+          centroidsData = centroidsData[0].features.sort(function (a, b) {
+                return b.properties.MW - a.properties.MW
+            });
 
           // access to all data here. Call drawMap() function once
-          drawMap(boemAreas, centroidsData);
+          drawMap(boemAreas[0], centroidsData);
 
         });
 
@@ -318,7 +318,7 @@
 
         function drawLegend(centroidsData) {
 
-          var largeDiameter = getRadius(centroidsData.features[0].properties.MW) * 2,
+          var largeDiameter = getRadius(centroidsData[0].properties.MW) * 2,
               smallDiameter = largeDiameter/2;
 
           $("#legend").css('height', largeDiameter.toFixed());
@@ -328,7 +328,7 @@
               'height': largeDiameter.toFixed()
           })
 
-          $("#legend-large-label").html(centroidsData.features[0].properties.MW.toLocaleString());
+          $("#legend-large-label").html(centroidsData[0].properties.MW.toLocaleString());
 
           $("#legend-large-label").css({
               'left': largeDiameter + 30,
@@ -342,7 +342,7 @@
               'left': smallDiameter/2
           })
 
-          $("#legend-small-label").html((centroidsData.features[0].properties.MW/2).toLocaleString());
+          $("#legend-small-label").html((centroidsData[0].properties.MW/2).toLocaleString());
 
           $("#legend-small-label").css({
               'top': smallDiameter - 8,
