@@ -191,14 +191,12 @@
           $.getJSON('data/Centroids_Acres_MW.json')
         ).done(function(boemAreas, centroidsData) {
 
-          console.log(centroidsData);
-
-          // centroidsData.features.sort(function (a, b) {
-          //       return b.properties.MW - a.properties.MW
-          //   });
+          centroidsData = centroidsData[0].features.sort(function (a, b) {
+                 return b.properties.MW - a.properties.MW
+             });
 
           // access to all data here. Call drawMap() function once
-          drawMap(boemAreas, centroidsData);
+          drawMap(boemAreas[0], centroidsData);
 
         });
 
@@ -318,7 +316,7 @@
 
         function drawLegend(centroidsData) {
 
-          var largeDiameter = getRadius(centroidsData.features[0].properties.MW) * 2,
+          var largeDiameter = getRadius(centroidsData[0].properties.MW) * 2,
               smallDiameter = largeDiameter/2;
 
           $("#legend").css('height', largeDiameter.toFixed());
@@ -328,7 +326,7 @@
               'height': largeDiameter.toFixed()
           })
 
-          $("#legend-large-label").html(centroidsData.features[0].properties.MW.toLocaleString());
+          $("#legend-large-label").html(centroidsData[0].properties.MW.toLocaleString());
 
           $("#legend-large-label").css({
               'left': largeDiameter + 30,
@@ -342,7 +340,7 @@
               'left': smallDiameter/2
           })
 
-          $("#legend-small-label").html((centroidsData.features[0].properties.MW/2).toLocaleString());
+          $("#legend-small-label").html((centroidsData[0].properties.MW/2).toLocaleString());
 
           $("#legend-small-label").css({
               'top': smallDiameter - 8,
