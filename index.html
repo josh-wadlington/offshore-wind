@@ -330,7 +330,11 @@
               'height': largeDiameter.toFixed()
           })
 
-          $("#legend-large-label").html(centroidsData[0].properties.MW.toLocaleString());
+          //exact size of large label
+          // $("#legend-large-label").html(centroidsData[0].properties.MW.toLocaleString());
+
+          //round label to a cleaner number
+          $("#legend-large-label").html('7,600');
 
           $("#legend-large-label").css({
               'left': largeDiameter + 30,
@@ -344,8 +348,11 @@
               'left': smallDiameter/2
           })
 
+          //exact size of large label
           // $("#legend-small-label").html((centroidsData[0].properties.MW/2).toLocaleString());
-          $("#legend-small-label").html((centroidsData[0].properties.MW/2).toLocaleString());
+
+          //round label to a cleaner number
+          $("#legend-small-label").html('3,810');
 
           $("#legend-small-label").css({
               'top': smallDiameter - 8,
