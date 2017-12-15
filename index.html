@@ -106,7 +106,8 @@
       <div class='h-full scroll-auto'>
         <h1 class='txt-h2 mb8 color-blue-dark'>Offshore Wind</h1>
         <p>The Bureau of Ocean Energy Management (BOEM) is responsible for overseeing offshore renewable energy development in Federal waters. To date 13 Federal leases have been issued on the Atlantic Outer Continental Shelf and several more pre-lease planning
-          areas have been delineated.</p>
+          areas have been delineated. <br><br>The lease areas are depicted on this map in black under the proportional symbols. The leaseholder (lessee) of each area is indicated in an infopanel on mouse hover. The lessee holds rights to develop the area pending
+          approval of a construction and operations plan. No lease areas in Federal waters currently have development, all are in a pre-construction phase.</p>
         <h2 class='txt-h3 mt18 mb8 color-blue-dark'>Capacity Estimate</h2>
         <p>Array power density is a measure of output in megawatts (MW) of offshore wind installations. The proportional symbols on this map use a capacity array power density calculation of 3 MW per square kilometer (MW/km2) based on likely array spacing
           of U.S. projects.</p>
@@ -259,7 +260,7 @@
                 fillColor: '#b30059',
                 weight: 1,
                 stroke: 1,
-                fillOpacity: .5,
+                fillOpacity: .3,
                 radius: getRadius(feature.properties.MW)
               });
             },
@@ -342,6 +343,7 @@
               'left': smallDiameter/2
           })
 
+          // $("#legend-small-label").html((centroidsData[0].properties.MW/2).toLocaleString());
           $("#legend-small-label").html((centroidsData[0].properties.MW/2).toLocaleString());
 
           $("#legend-small-label").css({
